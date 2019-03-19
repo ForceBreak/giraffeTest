@@ -168,7 +168,6 @@ export const mutations = {
 
 export const actions = {
   SIGNIN ({ commit }, payload) {
-    commit('PROCESSING', true, { root: true })
     let isCreated = JSON.parse(localStorage.getItem(payload.login))
     if (!isCreated) {
       let userObj = {
@@ -184,10 +183,9 @@ export const actions = {
         value: payload.login
       })
     } else if (isCreated && isCreated.password === payload.password) {
-      let createdAds = isCreated
       commit('SHOW_SIGNIN', false)
       commit('SET_USER', payload)
-      commit('UPGRADE_ADS', createdAds.ads)
+      commit('UPGRADE_ADS', isCreated.ads)
       commit('PROCESSING', false, { root: true })
       commit('SET_COOKIE', {
         name: 'userId',
@@ -195,7 +193,6 @@ export const actions = {
       })
     } else {
       commit('PASS_INVALID', 'Пароль неверный')
-      commit('PROCESSING', false, { root: true })
     }
   },
   SIGN_OUT ({ commit }) {

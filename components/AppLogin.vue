@@ -18,7 +18,7 @@
                       >
                       {{$store.state.error}}
                     </v-alert>
-                    <v-form v-model="valid">
+                    <v-form v-model="valid" ref="form">
                         <v-text-field 
                           prepend-icon="person" 
                           name="login" 
@@ -27,6 +27,7 @@
                           v-model="login" @keyup.enter="logIn"
                           required
                           :rules='textRule'
+                          autofocus
                           />
                         <v-text-field 
                           prepend-icon="lock" 
@@ -45,7 +46,6 @@
                     <v-spacer></v-spacer>
                     <v-btn 
                       color="primary"
-                      :disabled="PROCESSING"
                       @click.prevent="logIn">
                       {{btnText}}
                     </v-btn>
@@ -68,7 +68,7 @@ export default {
       btnText: 'Войти',
       login: '',
       password: '',
-      valid: false,
+      valid: true,
       textRule: [
         v => !!v || 'Поле обязательно'
       ]
@@ -76,10 +76,12 @@ export default {
   },
   methods: {
     logIn () {
-      this.$store.dispatch('user/SIGNIN', {
-        login: this.login,
-        password: this.password
-      })
+      if (this.$refs.form.validate()) {
+        this.$store.dispatch('user/SIGNIN', {
+          login: this.login,
+          password: this.password
+        })
+      }
     }
   },
   computed: {
