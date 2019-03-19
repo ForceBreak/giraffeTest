@@ -1,4 +1,5 @@
 export const state = () => ({
+  cookieId: '',
   showLogin: false,
   user: {
     login: false
@@ -109,6 +110,13 @@ export const mutations = {
   },
   CREATE_AD (state, payload) {
     state.ads.push(payload)
+    let userInStorage = JSON.parse(localStorage.getItem(state.user.login))
+    userInStorage.ads.push(payload)
+    localStorage.setItem(state.user.login, JSON.stringify(userInStorage))
+  },
+  UPGRADE_ADS (state, payload) {
+    let newList = state.ads.concat(payload)
+    state.ads = newList
   },
   SAVE_AD (state, payload) {
     state.ads.forEach((element, index) => {
@@ -121,28 +129,70 @@ export const mutations = {
   },
   DELETE_AD (state, payload) {
     let indexToDelete
+    let indexToDeleteFromStorage
     state.ads.forEach((element, index) => {
       if (Number(element.id) === Number(payload)) {
         indexToDelete = index
       }
     })
     state.ads.splice(indexToDelete, 1)
+
+    let deleteFromStorage = JSON.parse(localStorage.getItem(state.cookieId))
+    deleteFromStorage.ads.forEach((element, index) => {
+      if (Number(element.id) === Number(payload)) {
+        indexToDeleteFromStorage = index
+      }
+    })
+    deleteFromStorage.ads.splice(indexToDeleteFromStorage, 1)
+
+    localStorage.setItem(state.cookieId, JSON.stringify(deleteFromStorage))
+  },
+  SET_COOKIE (state, payload) {
+    payload.path = payload.path || '/' // заполняем путь если не заполнен
+    payload.days = payload.days || 10 // заполняем время жизни если не получен параметр
+    let lastDate = new Date()
+    lastDate.setDate(lastDate.getDate() + payload.days)
+    let value = escape(payload.value) + ((payload.days == null) ? '' : '; expires=' + lastDate.toUTCString())
+    document.cookie = payload.name + '=' + value + '; path=' + payload.path // вешаем куки
+  },
+  FILTER_COOKIE (state, payload) {
+    let coockieArray = payload.split(';')
+    coockieArray.forEach((element) => {
+      let newElement = element.split('=')
+      if (newElement[0] === 'userId' || newElement[0] === ' userId') {
+        state.cookieId = newElement[1]
+      }
+    })
   }
 }
 
 export const actions = {
   SIGNIN ({ commit }, payload) {
     commit('PROCESSING', true, { root: true })
-    let isCreated = localStorage.getItem(payload.login)
+    let isCreated = JSON.parse(localStorage.getItem(payload.login))
     if (!isCreated) {
-      localStorage.setItem(payload.login, payload.password)
+      let userObj = {
+        password: payload.password,
+        ads: []
+      }
+      localStorage.setItem(payload.login, JSON.stringify(userObj))
       commit('SHOW_SIGNIN', false)
       commit('SET_USER', payload)
       commit('PROCESSING', false, { root: true })
-    } else if (isCreated && isCreated === payload.password) {
+      commit('SET_COOKIE', {
+        name: 'userId',
+        value: payload.login
+      })
+    } else if (isCreated && isCreated.password === payload.password) {
+      let createdAds = isCreated
       commit('SHOW_SIGNIN', false)
       commit('SET_USER', payload)
+      commit('UPGRADE_ADS', createdAds.ads)
       commit('PROCESSING', false, { root: true })
+      commit('SET_COOKIE', {
+        name: 'userId',
+        value: payload.login
+      })
     } else {
       commit('PASS_INVALID', 'Пароль неверный')
       commit('PROCESSING', false, { root: true })
@@ -150,6 +200,10 @@ export const actions = {
   },
   SIGN_OUT ({ commit }) {
     commit('SIGN_OUT', false)
+    commit('SET_COOKIE', {
+      name: 'userId',
+      value: ''
+    })
   },
   CREATE_AD ({ commit }, payload) {
     commit('CREATE_AD', payload)
